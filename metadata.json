@@ -1,0 +1,6 @@
+{
+  "name": "AI Course Portal",
+  "description": "A visually striking AI-themed landing page directing users to a Telegram course bot.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
