@@ -1,7 +1,13 @@
 import { useEffect, useRef } from "react";
+import { motion } from "motion/react";
 
-export default function NetworkBackground() {
+export default function NetworkBackground({ animationState = 0 }: { animationState?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const stateRef = useRef(animationState);
+
+  useEffect(() => {
+    stateRef.current = animationState;
+  }, [animationState]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -45,6 +51,7 @@ export default function NetworkBackground() {
       vx: number;
       vy: number;
       size: number;
+      baseSize: number;
       color: string;
       density: number;
 
@@ -55,14 +62,45 @@ export default function NetworkBackground() {
         this.baseY = this.y;
         this.vx = (Math.random() - 0.5) * 0.5;
         this.vy = (Math.random() - 0.5) * 0.5;
-        this.size = Math.random() * 2 + 0.5;
+        this.baseSize = Math.random() * 2 + 0.5;
+        this.size = this.baseSize;
         this.color = `rgba(34, 211, 238, ${Math.random() * 0.8 + 0.2})`;
         this.density = (Math.random() * 30) + 1;
       }
 
       update() {
         if (!canvas) return;
-        // Slow natural movement
+        
+        const state = stateRef.current;
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+
+        if (state === 1 || state === 2) { // Sucking or holding inside
+          let dx = centerX - this.x;
+          let dy = centerY - this.y;
+          let distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance > 5) {
+            let angle = Math.atan2(dy, dx);
+            angle += 0.2; // Vortex spin
+            let speed = 10 + (250 / Math.max(distance, 1));
+            this.x += Math.cos(angle) * speed;
+            this.y += Math.sin(angle) * speed;
+          }
+          this.draw();
+          return;
+        } else if (state === 3) { // Rewinding
+          let dx = this.baseX - this.x;
+          let dy = this.baseY - this.y;
+          this.x += dx * 0.05;
+          this.y += dy * 0.05;
+          this.size = this.size + (this.baseSize - this.size) * 0.05;
+          this.draw();
+          return;
+        }
+
+        // State 0 (or default): Slow natural movement
+        this.size = this.baseSize;
         this.baseX += this.vx;
         this.baseY += this.vy;
 
@@ -84,7 +122,6 @@ export default function NetworkBackground() {
           this.x = this.baseX - directionX;
           this.y = this.baseY - directionY;
         } else {
-          // Return to base position
           if (this.x !== this.baseX) {
             let dx = this.x - this.baseX;
             this.x -= dx / 15;
@@ -101,7 +138,7 @@ export default function NetworkBackground() {
       draw() {
         if (!ctx) return;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, Math.max(this.size, 0), 0, Math.PI * 2);
         ctx.closePath();
         ctx.fillStyle = this.color;
         ctx.fill();
@@ -117,10 +154,15 @@ export default function NetworkBackground() {
 
     const connect = () => {
       let opacityValue = 1;
+      const state = stateRef.current;
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+
       for (let a = 0; a < particles.length; a++) {
+        // Draw normal inter-particle connections
         for (let b = a; b < particles.length; b++) {
           let distance = ((particles[a].x - particles[b].x) * (particles[a].x - particles[b].x))
-            + ((particles[a].y - particles[b].y) * (particles[a].y - particles[b].y));
+             + ((particles[a].y - particles[b].y) * (particles[a].y - particles[b].y));
           if (distance < (canvas.width / 8) * (canvas.height / 8)) {
             opacityValue = 1 - (distance / 25000);
             ctx!.strokeStyle = `rgba(34, 211, 238, ${opacityValue * 0.2})`;
@@ -129,6 +171,25 @@ export default function NetworkBackground() {
             ctx!.moveTo(particles[a].x, particles[a].y);
             ctx!.lineTo(particles[b].x, particles[b].y);
             ctx!.stroke();
+          }
+        }
+        
+        // When sucking, also draw neural connections trailing into the black hole
+        if (state === 1 || state === 2) {
+          let distToCenter = ((particles[a].x - centerX) * (particles[a].x - centerX))
+             + ((particles[a].y - centerY) * (particles[a].y - centerY));
+             
+          if (distToCenter > 100 && distToCenter < (canvas.width * canvas.height)) {
+            opacityValue = 1 - (distToCenter / (canvas.width * canvas.height * 0.5));
+            if (opacityValue > 0) {
+              ctx!.strokeStyle = `rgba(34, 211, 238, ${opacityValue * 0.4})`;
+              ctx!.lineWidth = 1.5;
+              ctx!.beginPath();
+              ctx!.moveTo(particles[a].x, particles[a].y);
+              // Draw line towards the center
+              ctx!.lineTo(centerX, centerY);
+              ctx!.stroke();
+            }
           }
         }
       }
@@ -156,34 +217,49 @@ export default function NetworkBackground() {
 
   return (
     <div className="fixed inset-0 z-0 bg-[#050810] overflow-hidden flex flex-col items-center justify-center">
-      {/* Tech Background Elements */}
-      <div className="absolute inset-0 opacity-20 pointer-events-none">
-        <div className="absolute top-20 left-40 w-px h-64 bg-cyan-500"></div>
-        <div className="absolute top-20 left-40 w-64 h-px bg-cyan-500"></div>
-        <div className="absolute bottom-40 right-20 w-px h-96 bg-blue-600"></div>
-        <div className="absolute bottom-40 right-0 w-20 h-px bg-blue-600"></div>
-        <div className="absolute top-1/2 left-0 w-1/3 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div>
-        <div className="absolute top-1/4 right-1/4 w-4 h-4 border border-cyan-500 rounded-full"></div>
-        <div className="absolute bottom-1/4 left-1/3 w-2 h-2 bg-blue-400 rounded-full shadow-[0_0_10px_#60a5fa]"></div>
-      </div>
-
-      {/* Atmospheric Glows */}
-      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-cyan-900/20 blur-[120px] rounded-full pointer-events-none"></div>
-      <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-blue-900/20 blur-[120px] rounded-full pointer-events-none"></div>
-
-      {/* Circuit Grid */}
-      <div
-        className="absolute inset-0 opacity-100 pointer-events-none"
-        style={{
-          backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)`,
-          backgroundSize: '100px 100px',
-          backgroundPosition: 'center center'
+      <motion.div 
+        className="absolute inset-0 border-0"
+        animate={
+          animationState === 1 || animationState === 2 
+            ? { scale: 0, opacity: 0 } 
+            : animationState === 3 
+            ? { scale: [0, 1.5, 1], opacity: [0, 1, 1] }
+            : { scale: 1, opacity: 1 }
+        }
+        transition={{ 
+          duration: animationState === 1 ? 2.5 : animationState === 3 ? 2 : 0, 
+          ease: "easeInOut" 
         }}
-      />
+      >
+        {/* Tech Background Elements */}
+        <div className="absolute inset-0 opacity-20 pointer-events-none">
+          <div className="absolute top-20 left-40 w-px h-64 bg-cyan-500"></div>
+          <div className="absolute top-20 left-40 w-64 h-px bg-cyan-500"></div>
+          <div className="absolute bottom-40 right-20 w-px h-96 bg-blue-600"></div>
+          <div className="absolute bottom-40 right-0 w-20 h-px bg-blue-600"></div>
+          <div className="absolute top-1/2 left-0 w-1/3 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div>
+          <div className="absolute top-1/4 right-1/4 w-4 h-4 border border-cyan-500 rounded-full"></div>
+          <div className="absolute bottom-1/4 left-1/3 w-2 h-2 bg-blue-400 rounded-full shadow-[0_0_10px_#60a5fa]"></div>
+        </div>
 
-      {/* Interactive Particles Layer */}
-      <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none opacity-80" />
+        {/* Atmospheric Glows */}
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-cyan-900/20 blur-[120px] rounded-full pointer-events-none"></div>
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-blue-900/20 blur-[120px] rounded-full pointer-events-none"></div>
+
+        {/* Circuit Grid */}
+        <div
+          className="absolute inset-0 opacity-100 pointer-events-none"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)`,
+            backgroundSize: '100px 100px',
+            backgroundPosition: 'center center'
+          }}
+        />
+
+        {/* Interactive Particles Layer */}
+        <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none opacity-80" />
+      </motion.div>
     </div>
   );
 }
