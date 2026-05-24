@@ -1,13 +1,15 @@
 import { useEffect, useRef } from "react";
 import { motion } from "motion/react";
 
-export default function NetworkBackground({ animationState = 0 }: { animationState?: number }) {
+export default function NetworkBackground({ animationState = 0, isMobile = false }: { animationState?: number, isMobile?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef(animationState);
+  const isMobileRef = useRef(isMobile);
 
   useEffect(() => {
     stateRef.current = animationState;
-  }, [animationState]);
+    isMobileRef.current = isMobile;
+  }, [animationState, isMobile]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -17,7 +19,7 @@ export default function NetworkBackground({ animationState = 0 }: { animationSta
 
     let animationFrameId: number;
     let particles: Particle[] = [];
-    const numParticles = 120;
+    const numParticles = isMobileRef.current ? 40 : 120;
     
     // Track mouse position
     let mouse = { x: -1000, y: -1000 };

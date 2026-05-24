@@ -11,6 +11,15 @@ const AnimatedText = React.memo(({ text, className = "" }: any) => {
 export default function App() {
   // 0: idle, 1: sucking, 2: hidden waiting for TG/rewind, 3: rewinding
   const [animationState, setAnimationState] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 768px)");
+    setIsMobile(mql.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, []);
 
   useEffect(() => {
     let timer1: any, timer2: any, timer3: any;
@@ -50,7 +59,7 @@ export default function App() {
   
   return (
     <div className="relative min-h-screen text-slate-100 font-sans selection:bg-cyan-500/30 overflow-hidden">
-      <NetworkBackground animationState={animationState} />
+      <NetworkBackground animationState={animationState} isMobile={isMobile} />
       
       <AnimatePresence>
         {animationState === 2 && <RocketLoading />}
@@ -72,11 +81,13 @@ export default function App() {
               transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
               className="absolute inset-4 rounded-full border-t-8 border-r-8 border-cyan-400/80 shadow-[0_0_80px_20px_rgba(34,211,238,0.8)] blur-[2px] z-10"
             />
-            <motion.div 
-              animate={{ rotate: 360 }} 
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              className="absolute inset-8 rounded-full border-b-8 border-l-8 border-indigo-500/80 shadow-[0_0_60px_10px_rgba(99,102,241,0.8)] blur-[4px] z-10"
-            />
+            {!isMobile && (
+              <motion.div 
+                animate={{ rotate: 360 }} 
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-8 rounded-full border-b-8 border-l-8 border-indigo-500/80 shadow-[0_0_60px_10px_rgba(99,102,241,0.8)] blur-[4px] z-10"
+              />
+            )}
             <div className="absolute w-32 h-32 bg-black rounded-full shadow-[inset_0_0_40px_rgba(0,0,0,1)] mix-blend-normal z-20" />
           </motion.div>
         )}
@@ -100,9 +111,10 @@ export default function App() {
       {/* Main Content Overlay */}
       <main className="relative z-30 flex min-h-screen flex-col items-center justify-center p-6 text-center">
         {/* Flash / Sparkle Event */}
-        <motion.div
-           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none mix-blend-screen z-50 flex items-center justify-center"
-        >
+        {!isMobile && (
+          <motion.div
+             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none mix-blend-screen z-50 flex items-center justify-center"
+          >
           {/* Horizontal Flare */}
           <motion.div
             className="absolute bg-white rounded-full"
@@ -176,24 +188,25 @@ export default function App() {
             }}
           />
         </motion.div>
+        )}
 
         <motion.div
            className="relative flex flex-col items-center max-w-2xl"
            animate={
              animationState === 1 ? {
-               scaleY: [1, 1, 0.01, 0, 0],
-               scaleX: [1, 1, 1.2, 0, 0],
-               opacity: [1, 1, 1, 0, 0],
-               filter: ["brightness(1) blur(0px)", "brightness(1) blur(0px)", "brightness(8) blur(4px)", "brightness(1) blur(0px)", "brightness(1) blur(0px)"],
+               scaleY: isMobile ? [1, 0, 0] : [1, 1, 0.01, 0, 0],
+               scaleX: isMobile ? [1, 0, 0] : [1, 1, 1.2, 0, 0],
+               opacity: isMobile ? [1, 0, 0] : [1, 1, 1, 0, 0],
+               filter: isMobile ? "none" : ["brightness(1) blur(0px)", "brightness(1) blur(0px)", "brightness(8) blur(4px)", "brightness(1) blur(0px)", "brightness(1) blur(0px)"],
              } : animationState === 2 ? {
                scaleY: 0, scaleX: 0, opacity: 0
              } : animationState === 3 ? {
-               scaleY: [0, 0, 0.01, 1, 1],
-               scaleX: [0, 0, 1.2, 1, 1],
-               opacity: [0, 0, 1, 1, 1],
-               filter: ["brightness(1) blur(0px)", "brightness(1) blur(0px)", "brightness(8) blur(4px)", "brightness(1) blur(0px)", "brightness(1) blur(0px)"],
+               scaleY: isMobile ? [0, 1, 1] : [0, 0, 0.01, 1, 1],
+               scaleX: isMobile ? [0, 1, 1] : [0, 0, 1.2, 1, 1],
+               opacity: isMobile ? [0, 1, 1] : [0, 0, 1, 1, 1],
+               filter: isMobile ? "none" : ["brightness(1) blur(0px)", "brightness(1) blur(0px)", "brightness(8) blur(4px)", "brightness(1) blur(0px)", "brightness(1) blur(0px)"],
              } : {
-               scaleY: 1, scaleX: 1, opacity: 1, filter: "brightness(1) blur(0px)"
+               scaleY: 1, scaleX: 1, opacity: 1, filter: isMobile ? "none" : "brightness(1) blur(0px)"
              }
            }
            transition={{
