@@ -157,35 +157,44 @@ export default function NetworkBackground({ animationState = 0 }: { animationSta
       const state = stateRef.current;
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
+      const maxDist = (canvas.width / 8) * (canvas.height / 8);
+      const limitCenterDist = (canvas.width * canvas.height * 0.5);
 
       for (let a = 0; a < particles.length; a++) {
+        const pA = particles[a];
         // Draw normal inter-particle connections
-        for (let b = a; b < particles.length; b++) {
-          let distance = ((particles[a].x - particles[b].x) * (particles[a].x - particles[b].x))
-             + ((particles[a].y - particles[b].y) * (particles[a].y - particles[b].y));
-          if (distance < (canvas.width / 8) * (canvas.height / 8)) {
+        for (let b = a + 1; b < particles.length; b++) {
+          const pB = particles[b];
+          let dx = pA.x - pB.x;
+          let dy = pA.y - pB.y;
+          let distance = dx * dx + dy * dy;
+
+          if (distance < maxDist) {
             opacityValue = 1 - (distance / 25000);
-            ctx!.strokeStyle = `rgba(34, 211, 238, ${opacityValue * 0.2})`;
-            ctx!.lineWidth = 1;
-            ctx!.beginPath();
-            ctx!.moveTo(particles[a].x, particles[a].y);
-            ctx!.lineTo(particles[b].x, particles[b].y);
-            ctx!.stroke();
+            if (opacityValue > 0.05) {
+              ctx!.strokeStyle = `rgba(34, 211, 238, ${opacityValue * 0.2})`;
+              ctx!.lineWidth = 1;
+              ctx!.beginPath();
+              ctx!.moveTo(pA.x, pA.y);
+              ctx!.lineTo(pB.x, pB.y);
+              ctx!.stroke();
+            }
           }
         }
         
         // When sucking, also draw neural connections trailing into the black hole
         if (state === 1 || state === 2) {
-          let distToCenter = ((particles[a].x - centerX) * (particles[a].x - centerX))
-             + ((particles[a].y - centerY) * (particles[a].y - centerY));
+          let cxDist = pA.x - centerX;
+          let cyDist = pA.y - centerY;
+          let distToCenter = cxDist * cxDist + cyDist * cyDist;
              
           if (distToCenter > 100 && distToCenter < (canvas.width * canvas.height)) {
-            opacityValue = 1 - (distToCenter / (canvas.width * canvas.height * 0.5));
-            if (opacityValue > 0) {
+            opacityValue = 1 - (distToCenter / limitCenterDist);
+            if (opacityValue > 0.05) {
               ctx!.strokeStyle = `rgba(34, 211, 238, ${opacityValue * 0.4})`;
               ctx!.lineWidth = 1.5;
               ctx!.beginPath();
-              ctx!.moveTo(particles[a].x, particles[a].y);
+              ctx!.moveTo(pA.x, pA.y);
               // Draw line towards the center
               ctx!.lineTo(centerX, centerY);
               ctx!.stroke();
@@ -221,10 +230,10 @@ export default function NetworkBackground({ animationState = 0 }: { animationSta
         className="absolute inset-0 border-0"
         animate={
           animationState === 1 || animationState === 2 
-            ? { scale: 0, opacity: 0 } 
+            ? { opacity: 0 } 
             : animationState === 3 
-            ? { scale: [0, 1.5, 1], opacity: [0, 1, 1] }
-            : { scale: 1, opacity: 1 }
+            ? { opacity: [0, 1] }
+            : { opacity: 1 }
         }
         transition={{ 
           duration: animationState === 1 ? 2.5 : animationState === 3 ? 2 : 0, 

@@ -1,71 +1,12 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Bot, ChevronRight, Cpu, RotateCcw } from "lucide-react";
 import NetworkBackground from "./components/NetworkBackground";
 import RocketLoading from "./components/RocketLoading";
 
-const AnimatedText = ({ text, animationState, delayBase = 0, yOffset = 200, className = "" }: any) => {
-  const chars = useMemo(() => {
-    return String(text).split('').map((char) => {
-      const topOff = -20 - Math.random() * 50;
-      const xOff = (Math.random() - 0.5) * 300;
-      const rot = (Math.random() - 0.5) * 1080;
-      const dur = 3 + Math.random() * 1.5;
-      const dly = delayBase + Math.random() * 0.5;
-      return { char, topOff, xOff, rot, dur, dly };
-    });
-  }, [text, delayBase]);
-
-  return (
-    <span className={`inline-block relative ${className}`}>
-      {chars.map(({ char, topOff, xOff, rot, dur, dly }, i) => {
-// 0: idle, 1: sucking, 2: wait with hole, 3: rewinding
-        const isSucking = animationState === 1;
-        const isHidden = animationState === 2;
-        const isRewinding = animationState === 3;
-
-        return (
-          <motion.span
-            key={i}
-            className={`inline-block ${className}`}
-            style={{ whiteSpace: char === ' ' ? 'pre' : 'normal', position: 'relative' }}
-            initial={{ y: 0, x: 0, scale: 1, rotate: 0, opacity: 1 }}
-            animate={
-              isSucking ? {
-                y: [0, topOff, yOffset],
-                x: [0, xOff, xOff],
-                scale: [1, 1.5, 0],
-                rotate: [0, rot, rot * 2],
-                opacity: [1, 1, 0]
-              } : isHidden ? {
-                y: yOffset,
-                x: xOff,
-                scale: 0,
-                rotate: rot * 2,
-                opacity: 0
-              } : isRewinding ? {
-                y: [yOffset, topOff, 0],
-                x: [xOff, xOff, 0],
-                scale: [0, 1.5, 1],
-                rotate: [rot * 2, rot, 0],
-                opacity: [0, 1, 1]
-              } : {
-                 y: 0, x: 0, scale: 1, rotate: 0, opacity: 1 
-              }
-            }
-            transition={{
-              duration: isSucking ? dur : (isRewinding ? 2 : 0),
-              delay: isSucking ? dly : 0,
-              ease: "easeInOut"
-            }}
-          >
-            {char}
-          </motion.span>
-        );
-      })}
-    </span>
-  );
-};
+const AnimatedText = React.memo(({ text, className = "" }: any) => {
+  return <span className={className}>{text}</span>;
+});
 
 export default function App() {
   // 0: idle, 1: sucking, 2: hidden waiting for TG/rewind, 3: rewinding
@@ -106,29 +47,6 @@ export default function App() {
     };
   }, [animationState]);
 
-  const shapes = useMemo(() => {
-    const pieces = [];
-    for (let row = 0; row < 3; row++) {
-      for (let col = 0; col < 4; col++) {
-        const top = (row / 3) * 100;
-        const bottom = ((row + 1) / 3) * 100;
-        const left = (col / 4) * 100;
-        const right = ((col + 1) / 4) * 100;
-
-        const dirX = (Math.random() - 0.5) * 800;
-        const dirY = (Math.random() - 0.5) * 800;
-        const rot = (Math.random() - 0.5) * 720;
-
-        pieces.push({
-          path: `polygon(${left}% ${top}%, ${right}% ${top}%, ${right}% ${bottom}%, ${left}% ${bottom}%)`,
-          x: dirX,
-          y: dirY,
-          rotate: rot,
-        });
-      }
-    }
-    return pieces;
-  }, []);
   
   return (
     <div className="relative min-h-screen text-slate-100 font-sans selection:bg-cyan-500/30 overflow-hidden">
@@ -181,53 +99,139 @@ export default function App() {
 
       {/* Main Content Overlay */}
       <main className="relative z-30 flex min-h-screen flex-col items-center justify-center p-6 text-center">
+        {/* Flash / Sparkle Event */}
         <motion.div
-           animate={animationState === 1 ? { scale: [1, 0.5, 0], opacity: [1, 0.8, 0] } : animationState === 2 ? { scale: 0, opacity: 0 } : animationState === 3 ? { scale: [0, 0.5, 1], opacity: [0, 0.8, 1] } : { scale: 1, opacity: 1 }}
-           transition={{ duration: animationState === 1 ? 2.5 : (animationState === 3 ? 2 : 0), ease: "easeInOut" }}
-          className="flex flex-col items-center max-w-2xl"
+           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none mix-blend-screen z-50 flex items-center justify-center"
+        >
+          {/* Horizontal Flare */}
+          <motion.div
+            className="absolute bg-white rounded-full"
+            animate={
+              animationState === 1 ? {
+                 width: ["0vw", "0vw", "80vw", "0vw", "0vw"],
+                 height: ["0px", "0px", "3px", "0px", "0px"],
+                 opacity: [0, 0, 1, 0, 0],
+                 boxShadow: [
+                   "0 0 0px 0px rgba(255,255,255,0)",
+                   "0 0 0px 0px rgba(255,255,255,0)",
+                   "0 0 80px 20px rgba(255,255,255,1), 0 0 200px 40px rgba(34,211,238,0.8)",
+                   "0 0 0px 0px rgba(255,255,255,0)",
+                   "0 0 0px 0px rgba(255,255,255,0)"
+                 ],
+              } : animationState === 2 ? {
+                 width: "0vw", height: "0px", opacity: 0
+              } : animationState === 3 ? {
+                 width: ["0vw", "0vw", "80vw", "0vw", "0vw"],
+                 height: ["0px", "0px", "3px", "0px", "0px"],
+                 opacity: [0, 0, 1, 0, 0],
+                 boxShadow: [
+                   "0 0 0px 0px rgba(255,255,255,0)",
+                   "0 0 0px 0px rgba(255,255,255,0)",
+                   "0 0 80px 20px rgba(255,255,255,1), 0 0 200px 40px rgba(34,211,238,0.8)",
+                   "0 0 0px 0px rgba(255,255,255,0)",
+                   "0 0 0px 0px rgba(255,255,255,0)"
+                 ],
+              } : { width: "0vw", height: "0px", opacity: 0 }
+            }
+            transition={{
+              duration: animationState === 1 ? 2.5 : (animationState === 3 ? 2 : 0),
+              times: [0, 0.5, 0.6, 0.7, 1],
+              ease: "easeInOut"
+            }}
+          />
+          {/* Vertical Flare */}
+          <motion.div
+            className="absolute bg-white rounded-full"
+            animate={
+              animationState === 1 ? {
+                 height: ["0vh", "0vh", "40vh", "0vh", "0vh"],
+                 width: ["0px", "0px", "2px", "0px", "0px"],
+                 opacity: [0, 0, 1, 0, 0],
+                 boxShadow: [
+                   "0 0 0px 0px rgba(255,255,255,0)",
+                   "0 0 0px 0px rgba(255,255,255,0)",
+                   "0 0 40px 10px rgba(255,255,255,1), 0 0 100px 20px rgba(34,211,238,0.8)",
+                   "0 0 0px 0px rgba(255,255,255,0)",
+                   "0 0 0px 0px rgba(255,255,255,0)"
+                 ],
+              } : animationState === 2 ? {
+                 height: "0vh", width: "0px", opacity: 0
+              } : animationState === 3 ? {
+                 height: ["0vh", "0vh", "40vh", "0vh", "0vh"],
+                 width: ["0px", "0px", "2px", "0px", "0px"],
+                 opacity: [0, 0, 1, 0, 0],
+                 boxShadow: [
+                   "0 0 0px 0px rgba(255,255,255,0)",
+                   "0 0 0px 0px rgba(255,255,255,0)",
+                   "0 0 40px 10px rgba(255,255,255,1), 0 0 100px 20px rgba(34,211,238,0.8)",
+                   "0 0 0px 0px rgba(255,255,255,0)",
+                   "0 0 0px 0px rgba(255,255,255,0)"
+                 ],
+              } : { height: "0vh", width: "0px", opacity: 0 }
+            }
+            transition={{
+              duration: animationState === 1 ? 2.5 : (animationState === 3 ? 2 : 0),
+              times: [0, 0.53, 0.6, 0.67, 1],
+              ease: "easeInOut"
+            }}
+          />
+        </motion.div>
+
+        <motion.div
+           className="relative flex flex-col items-center max-w-2xl"
+           animate={
+             animationState === 1 ? {
+               scaleY: [1, 1, 0.01, 0, 0],
+               scaleX: [1, 1, 1.2, 0, 0],
+               opacity: [1, 1, 1, 0, 0],
+               filter: ["brightness(1) blur(0px)", "brightness(1) blur(0px)", "brightness(8) blur(4px)", "brightness(1) blur(0px)", "brightness(1) blur(0px)"],
+             } : animationState === 2 ? {
+               scaleY: 0, scaleX: 0, opacity: 0
+             } : animationState === 3 ? {
+               scaleY: [0, 0, 0.01, 1, 1],
+               scaleX: [0, 0, 1.2, 1, 1],
+               opacity: [0, 0, 1, 1, 1],
+               filter: ["brightness(1) blur(0px)", "brightness(1) blur(0px)", "brightness(8) blur(4px)", "brightness(1) blur(0px)", "brightness(1) blur(0px)"],
+             } : {
+               scaleY: 1, scaleX: 1, opacity: 1, filter: "brightness(1) blur(0px)"
+             }
+           }
+           transition={{
+             duration: animationState === 1 ? 2.5 : (animationState === 3 ? 2 : 0),
+             times: [0, 0.5, 0.6, 0.65, 1],
+             ease: "easeInOut"
+           }}
         >
           {/* Top minimal badge */}
           <div className="mb-6 flex items-center gap-3">
-            <motion.div
-              animate={
-                animationState === 1 ? { y: [0, -50, 400], x: [0, -100, -100], scale: [1, 1.5, 0], rotate: [0, -360, -360] } :
-                animationState === 2 ? { y: 400, x: -100, scale: 0, rotate: -360 } :
-                animationState === 3 ? { y: [400, -50, 0], x: [-100, -100, 0], scale: [0, 1.5, 1], rotate: [-360, 0, 0] } :
-                { y: 0, x: 0, scale: 1, rotate: 0 }
-              }
-              transition={{ duration: animationState === 1 ? 2.4 : (animationState === 3 ? 2 : 0), ease: "easeInOut" }}
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 shadow-lg shadow-cyan-500/20"
-            >
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 shadow-lg shadow-cyan-500/20">
               <Cpu className="h-6 w-6 text-white" />
-            </motion.div>
+            </div>
             <span className="font-mono text-xs sm:text-sm uppercase tracking-widest text-cyan-400">
-              <AnimatedText text="Neuronové Vzdělávací Prostředí" animationState={animationState} yOffset={350} delayBase={0} />
+              <AnimatedText text="Neuronové Vzdělávací Prostředí" />
             </span>
           </div>
 
           <h1 className="mb-4 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight py-2 leading-tight">
             <span className="block drop-shadow-md">
-              <AnimatedText text="Ponoření se" className="bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400" animationState={animationState} yOffset={250} delayBase={0.2} />
+              <AnimatedText text="Ponoření se" className="bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400" />
             </span>
             <span className="block mt-2 drop-shadow-md">
-              <AnimatedText text="do budoucnosti" className="bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400" animationState={animationState} yOffset={250} delayBase={0.4} />
+              <AnimatedText text="do budoucnosti" className="bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400" />
             </span>
           </h1>
           
           <p className="mb-12 max-w-2xl text-lg sm:text-xl text-gray-400 leading-relaxed max-w-[500px]">
-             <AnimatedText text="Získejte přístup k pokročilým znalostem. Interaktivní učení řízené umělou inteligencí je k dispozici právě teď." animationState={animationState} yOffset={150} delayBase={0.6} />
+             <AnimatedText text="Získejte přístup k pokročilým znalostem. Interaktivní učení řízené umělou inteligencí je k dispozici právě teď." />
           </p>
 
           <div className="relative h-[68px] sm:h-[84px] flex items-center justify-center w-[300px] sm:w-[400px]">
-            {animationState === 0 && (
-              <motion.button
+             <button
                 onClick={() => {
-                  setAnimationState(1);
+                  if (animationState === 0) setAnimationState(1);
                 }}
-                className="group relative w-full h-full block cursor-pointer"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.6 }}
+                disabled={animationState !== 0}
+                className="group relative w-full h-full block cursor-pointer transition-all duration-300"
               >
                 {/* Glow Effect Behind Button */}
                 <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full blur opacity-40 group-hover:opacity-75 transition duration-500" />
@@ -237,49 +241,7 @@ export default function App() {
                   <span className="text-xl sm:text-2xl font-semibold tracking-wide text-white uppercase whitespace-nowrap">Přejít na kurz</span>
                   <ChevronRight className="h-6 w-6 text-cyan-400 transition-transform group-hover:translate-x-1" />
                 </div>
-              </motion.button>
-            )}
-
-            {/* The Shards - explode then sucked into black hole, or rewind */}
-            {animationState !== 0 && shapes.map((shape, i) => (
-              <motion.div
-                key={i}
-                className="absolute top-0 left-0 w-full h-full origin-center pointer-events-none"
-                style={{ clipPath: shape.path }}
-                animate={
-                  animationState === 1 ? {
-                    x: [0, shape.x, 0],
-                    y: [0, shape.y, 0],
-                    rotate: [0, shape.rotate, shape.rotate * 3],
-                    opacity: [1, 1, 0],
-                    scale: [1, 1.2, 0],
-                  } : animationState === 2 ? {
-                    x: 0,
-                    y: 0,
-                    rotate: shape.rotate * 3,
-                    opacity: 0,
-                    scale: 0,
-                  } : { // animationState === 3
-                    x: [0, shape.x, 0],
-                    y: [0, shape.y, 0],
-                    rotate: [shape.rotate * 3, shape.rotate, 0],
-                    opacity: [0, 1, 1],
-                    scale: [0, 1.2, 1],
-                  }
-                }
-                transition={{
-                  duration: animationState === 1 ? 2.4 : (animationState === 3 ? 2 : 0),
-                  times: animationState === 1 ? [0, 0.4, 1] : (animationState === 3 ? [0, 0.6, 1] : undefined),
-                  ease: "easeInOut",
-                }}
-              >
-                <div className="relative flex items-center justify-center bg-[#0a0f1a] shadow-[0_0_15px_rgba(34,211,238,0.5)] border border-white/20 w-full h-full rounded-full gap-4">
-                  <Bot className="h-6 w-6 text-cyan-400" />
-                  <span className="text-xl sm:text-2xl font-semibold tracking-wide text-white uppercase whitespace-nowrap">Přejít na kurz</span>
-                  <ChevronRight className="h-6 w-6 text-cyan-400" />
-                </div>
-              </motion.div>
-            ))}
+              </button>
           </div>
         </motion.div>
       </main>
